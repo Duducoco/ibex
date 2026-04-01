@@ -199,7 +199,7 @@ def _main() -> int:
 
         # Ensure that the output directory actually exists
         trr.dir_test.mkdir(parents=True, exist_ok=True)
-        trr.riscvdv_run_gen_stdout = md.dir_instruction_generator/'riscvdv_cmds.log'
+        trr.riscvdv_run_gen_stdout = trr.dir_test/'riscvdv_cmds.log'
         trr.riscvdv_run_gen_cmds   = [format_to_cmd(cmd)]
         # Run riscv-dv to generate commands. This is rather chatty, so redirect
         # its output to a log file.
@@ -219,7 +219,7 @@ def _main() -> int:
                               str(orig_list))
 
         trr.riscvdv_run_cmds   = [format_to_cmd(cmd) for cmd in cmds]
-        trr.riscvdv_run_stdout = md.dir_instruction_generator/'riscvdv_run.log'
+        trr.riscvdv_run_stdout = trr.dir_test/'riscvdv_run.log'
         trr.assembly           = trr.dir_test / 'test.S'
         # Open up a file to take output from running the commands
         with trr.riscvdv_run_stdout.open('w') as log_fd:
