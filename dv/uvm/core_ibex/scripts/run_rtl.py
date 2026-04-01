@@ -113,6 +113,24 @@ def _main() -> int:
             trr.failure_message = "[FAILURE] Simulation process killed due to timeout " \
                                  f"[{md.run_rtl_timeout_s+60}s].\n"
 
+        # Generate per-test coverage HTML report via urg
+        if md.cov:
+            cov_vdb = trr.dir_test / 'coverage' / 'test.vdb'
+            compile_vdb = md.dir_shared_cov / 'test.vdb'
+            cov_report_dir = trr.dir_test / 'coverage' / 'report'
+            if cov_vdb.exists():
+                urg_cmd = ['urg', '-full64',
+                           '-format', 'both',
+                           '-dir', str(compile_vdb),
+                           '-dir', str(cov_vdb),
+                           '-report', str(cov_report_dir),
+                           '-log', str(trr.dir_test / 'coverage' / 'urg.log')]
+                logger.info(f"Generating per-test coverage report: {urg_cmd}")
+                try:
+                    run_one(md.verbose, urg_cmd, redirect_stdstreams=sim_fd)
+                except Exception as e:
+                    logger.warning(f"Coverage report generation failed: {e}")
+
     trr.export(write_yaml=True)
     # Always return 0 (success), even if the test failed. We've successfully
     # generated a log either way.

@@ -43,7 +43,7 @@
           -debug_access+f
           <cmp_opts> <wave_opts> <cov_opts> <cosim_opts>
     cov_opts: >-
-      -cm line+tgl+assert+fsm+branch
+      -cm line+tgl+assert+fsm+branch+cond
       -cm_tgl portsonly
       -cm_tgl structarr
       -cm_report noinitial
@@ -75,8 +75,8 @@
             -l <rtl_sim_log>
             <sim_opts> <wave_opts> <cov_opts>
     cov_opts: >
-      -cm line+tgl+assert+fsm+branch
-      -cm_dir <dir_shared_cov>/test.vdb
+      -cm line+tgl+assert+fsm+branch+cond
+      -cm_dir <test_dir>/coverage/test.vdb
       -cm_log /dev/null
       -assert nopostproc
       -cm_name test_<test_name>_<seed>
