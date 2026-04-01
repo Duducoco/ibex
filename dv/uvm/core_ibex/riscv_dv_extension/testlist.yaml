@@ -756,7 +756,7 @@
   gen_opts: >
     +disable_compressed_instr=1
   gcc_opts: >
-    -march=rv32im
+    -march=rv32im_zicsr_zifencei
   rtl_test: core_ibex_base_test
 
 - test: riscv_user_mode_rand_test

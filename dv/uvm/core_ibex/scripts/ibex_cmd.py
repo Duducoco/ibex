@@ -113,7 +113,7 @@ def get_isas_for_config(cfg: Config) -> Tuple[str, str]:
         raise ValueError(f'Unknown RV32B value ({cfg.rv32b}) in config YAML')
 
     has_bitmanip = cfg.rv32b != 'ibex_pkg::RV32BNone'
-    toolchain_isa = base_isa + ('b' if has_bitmanip else '')
+    toolchain_isa = base_isa + ('b' if has_bitmanip else '') + '_zicsr_zifencei'
 
     return (toolchain_isa, '_'.join([base_isa] + bitmanip_isa))
 

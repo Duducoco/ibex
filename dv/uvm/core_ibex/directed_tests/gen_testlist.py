@@ -57,7 +57,7 @@ def add_configs_and_handwritten_directed_tests():
 - config: epmp-tests
   ld_script: ../../../../vendor/riscv-isa-sim/tests/mseccfg/mseccfg_test.ld
   includes: .
-  gcc_opts: -march=rv32imc -O2 -I . -I ./. -I ../softfloat -I ../riscv -fno-builtin-printf
+  gcc_opts: -march=rv32imc_zicsr_zifencei -O2 -I . -I ./. -I ../softfloat -I ../riscv -fno-builtin-printf
             -fdata-sections -fno-section-anchors -DPRINTF_SUPPORTED=1
             ../../../vendor/riscv-isa-sim/tests/mseccfg/crt.S
             ../../../vendor/riscv-isa-sim/tests/mseccfg/syscalls.c
