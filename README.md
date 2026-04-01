@@ -57,6 +57,69 @@ The Ibex user manual can be
 [read online at ReadTheDocs](https://ibex-core.readthedocs.io/en/latest/). It is also contained in
 the `doc` folder of this repository.
 
+## Running Simulations
+
+### Prerequisites
+
+- **Simulator**: VCS (Synopsys) or Verilator
+- **ISS**: Spike RISC-V ISA Simulator
+- **Toolchain**: RISC-V GCC (rv32imc or rv32imcb)
+- **Python**: 3.6+ with dependencies from `python-requirements.txt`
+
+### Quick Start
+
+```bash
+# Navigate to UVM testbench directory
+cd dv/uvm/core_ibex
+
+# Run a single test
+make SIMULATOR=vcs ISS=spike IBEX_CONFIG=opentitan \
+     TEST=riscv_arithmetic_basic_test SEED=1 ITERATIONS=1
+
+# Run full regression with coverage
+make SIMULATOR=vcs ISS=spike IBEX_CONFIG=opentitan \
+     COV=1 -j16
+
+# Run only random tests (exclude directed tests)
+make SIMULATOR=vcs ISS=spike IBEX_CONFIG=opentitan \
+     TEST=all
+
+# Run only directed tests
+make SIMULATOR=vcs ISS=spike IBEX_CONFIG=opentitan \
+     TEST=all_directed
+
+# Run both random and directed tests
+make SIMULATOR=vcs ISS=spike IBEX_CONFIG=opentitan \
+     TEST=all,all_directed
+```
+
+### Key Parameters
+
+- `SIMULATOR`: Simulation tool (`vcs`, `xlm`, `questa`, `dsim`)
+- `ISS`: Instruction set simulator for co-simulation (`spike`, `ovpsim`)
+- `IBEX_CONFIG`: Core configuration (`opentitan`, `small`, `maxperf`)
+- `TEST`: Test name or filter (`all`, `all_directed`, specific test name)
+- `SEED`: Random seed for test generation
+- `ITERATIONS`: Number of iterations per test (overrides testlist default)
+- `COV`: Enable coverage collection (`0` or `1`)
+- `-j<N>`: Parallel execution with N jobs
+
+### Test Results
+
+Results are stored in `out/run/`:
+- `tests/<test_name>.<seed>/`: Per-test directory with logs and traces
+- `tests/<test_name>.<seed>/coverage/report/`: Per-test coverage HTML report
+- `regr.log`: Regression summary with pass/fail statistics
+
+### Coverage Reports
+
+When `COV=1` is enabled:
+- **Per-test reports**: `out/run/tests/<test>.<seed>/coverage/report/dashboard.html`
+- **Merged report**: Generated after all tests complete
+- **Metrics collected**: Line, Branch, Condition, Toggle, FSM, Assertion
+
+For more details, see [CLAUDE.md](CLAUDE.md) and the [DV documentation](dv/uvm/core_ibex/README.md).
+
 ## Examples
 
 The Ibex repository includes [Simple System](examples/simple_system/README.md).
