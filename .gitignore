@@ -22,3 +22,4 @@ __pycache__
 modelsim.ini
 
 dv/uvm/core_ibex/.fsm.sch.verilog.xml
+CLAUDE.md
