@@ -101,6 +101,11 @@ export PKG_CONFIG_PATH=$IBEX_SPIKE_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
 > ```bash
 > source setup_env.sh   # from the ibex repo root
 > ```
+> Before sourcing, open `setup_env.sh` and update the `IBEX_SPIKE_DIR` variable
+> to point to your actual Spike installation directory:
+> ```bash
+> IBEX_SPIKE_DIR="/your/actual/path/to/ibex_spike"
+> ```
 
 > **Note**: On GCC 15+, the build may fail with `'uint64_t' was not declared`
 > in `fesvr/device.h`. Fix by adding `#include <cstdint>` at the top of that
