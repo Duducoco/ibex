@@ -62,13 +62,62 @@ the `doc` folder of this repository.
 ### Prerequisites
 
 - **Simulator**: VCS (Synopsys) or Verilator
-- **ISS**: Spike RISC-V ISA Simulator
+- **ISS**: lowRISC ibex-cosim fork of Spike (see build instructions below)
 - **Toolchain**: RISC-V GCC (rv32imc or rv32imcb)
 - **Python**: 3.6+ with dependencies from `python-requirements.txt`
+
+### Building the ibex-cosim Spike
+
+The standard upstream Spike does **not** work. You must build the
+[lowRISC ibex-cosim fork](https://github.com/lowrisc/riscv-isa-sim) from the
+`ibex_cosim` branch, which adds ibex-specific processor APIs required by the
+co-simulation DPI layer.
+
+```bash
+# Clone the ibex-cosim fork
+git clone https://github.com/lowrisc/riscv-isa-sim ibex-spike
+cd ibex-spike
+git checkout ibex_cosim
+
+# Build and install (set SPIKE_INSTALL_DIR to your preferred location)
+export SPIKE_INSTALL_DIR=/path/to/ibex_spike
+mkdir build && cd build
+../configure --enable-commitlog --enable-misaligned --prefix=$SPIKE_INSTALL_DIR
+make -j$(nproc)
+make install
+```
+
+After installation, set the following environment variables (add to `~/.bashrc`):
+
+```bash
+export IBEX_SPIKE_DIR=/path/to/ibex_spike
+export SPIKE_PATH=$IBEX_SPIKE_DIR/bin
+export PKG_CONFIG_PATH=$IBEX_SPIKE_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
+```
+
+> **Note**: If you use the standard Spike for other projects, do **not** add
+> the above to `~/.bashrc`. Instead, source the provided helper before running
+> ibex simulations:
+> ```bash
+> source setup_env.sh   # from the ibex repo root
+> ```
+
+> **Note**: On GCC 15+, the build may fail with `'uint64_t' was not declared`
+> in `fesvr/device.h`. Fix by adding `#include <cstdint>` at the top of that
+> file before the other includes.
+
+### Python dependencies
+
+```bash
+pip install -r python-requirements.txt
+```
 
 ### Quick Start
 
 ```bash
+# Activate ibex-cosim spike (only needed if standard spike is your default)
+source setup_env.sh
+
 # Navigate to UVM testbench directory
 cd dv/uvm/core_ibex
 
