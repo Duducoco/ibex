@@ -55,7 +55,7 @@ def main() -> int:
                     passing_tests.append(trr)
                 else:
                     failing_tests.append(trr)
-            except RuntimeError as e:
+            except (RuntimeError, FileNotFoundError) as e:
                 failing_tests.append(
                     TestRunResult(
                         name='broken_test',

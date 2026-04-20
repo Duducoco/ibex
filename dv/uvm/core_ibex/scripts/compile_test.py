@@ -17,7 +17,7 @@ import itertools
 from scripts_lib import run_one, format_to_cmd, read_yaml
 import riscvdv_interface
 from test_entry import read_test_dot_seed, get_test_entry
-from metadata import RegressionMetadata
+from metadata import RegressionMetadata, load_or_create_trr
 from test_run_result import TestRunResult, TestType
 
 import logging
@@ -181,7 +181,7 @@ def _main() -> int:
     args = parser.parse_args()
     tds = args.test_dot_seed
     md = RegressionMetadata.construct_from_metadata_dir(args.dir_metadata)
-    trr = TestRunResult.construct_from_metadata_dir(args.dir_metadata, f"{tds[0]}.{tds[1]}")
+    trr = load_or_create_trr(args.dir_metadata, f"{tds[0]}.{tds[1]}")
 
     if trr.testtype == TestType.RISCVDV:
         cmds = get_riscvdv_compile_cmds(md, trr)

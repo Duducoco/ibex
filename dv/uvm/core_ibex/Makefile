@@ -83,7 +83,7 @@ run:
 
 # This is the top-level output directory. Everything we generate goes in
 # here.
-OUT := out
+OUT ?= out/runs/$(TEST)_$(SEED)
 
 # Derived directories from $(OUT), used for stuff that's built once or
 # stuff that gets run for each seed, respectively. Using OUT-DIR on

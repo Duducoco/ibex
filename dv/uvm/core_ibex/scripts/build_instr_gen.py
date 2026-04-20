@@ -41,7 +41,8 @@ def _main() -> int:
              '--simulator', md.simulator,
              '--output', md.dir_instruction_generator,
              '--isa', md.isa_ibex,
-             '--end_signature_addr', md.signature_addr])]
+             '--end_signature_addr', md.signature_addr,
+             '--cmp_opts', f'+incdir+{md.dir_build}'])]
 
     retcode = run_one(md.verbose, md.riscvdv_build_cmds[0], redirect_stdstreams=md.riscvdv_build_stdout)
 

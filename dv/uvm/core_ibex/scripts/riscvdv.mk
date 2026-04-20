@@ -4,12 +4,12 @@
 
 ###############################################################################
 
-CORE-CONFIG-STAMP = $(METADATA-DIR)/core.config.stamp
+CORE-CONFIG-STAMP = $(BUILD-DIR)/core.config.stamp
 core_config: $(CORE-CONFIG-STAMP)
 core-config-var-deps := IBEX_CONFIG
 
-INSTR-GEN-BUILD-STAMP = $(METADATA-DIR)/instr.gen.build.stamp
-instr_gen_build: $(METADATA-DIR)/instr.gen.build.stamp
+INSTR-GEN-BUILD-STAMP = $(BUILD-DIR)/instr.gen.build.stamp
+instr_gen_build: $(INSTR-GEN-BUILD-STAMP)
 instr-gen-build-var-deps := SIMULATOR SIGNATURE_ADDR  # Rebuild if these change
 
 instr_gen_run: $(riscvdv-test-asms)
@@ -37,7 +37,7 @@ $(CORE-CONFIG-STAMP): \
 	$(verb)env PYTHONPATH=$(PYTHONPATH) \
 	  scripts/render_config_template.py \
 	    --dir-metadata $(METADATA-DIR) \
-	    $(EXT_DIR)/riscv_core_setting.tpl.sv > $(EXT_DIR)/riscv_core_setting.sv
+	    $(EXT_DIR)/riscv_core_setting.tpl.sv > $(BUILD-DIR)/riscv_core_setting.sv
 	$(call dump-vars,$(core-config-vars-path),gen,$(core-config-var-deps))
 	@touch $@
 
@@ -53,7 +53,7 @@ instr-gen-build-vars-prereq = \
      building instruction generator, \
      $(instr-gen-build-var-deps))
 
-$(METADATA-DIR)/instr.gen.build.stamp: \
+$(INSTR-GEN-BUILD-STAMP): \
   $(instr-gen-build-vars-prereq) $(riscv-dv-files) $(CORE-CONFIG-STAMP) \
   scripts/build_instr_gen.py \
   | $(BUILD-DIR)
@@ -74,11 +74,11 @@ $(METADATA-DIR)/instr.gen.build.stamp: \
 #         recipe
 #         …
 
-$(riscvdv-test-asms): $(TESTS-DIR)/%/$(asm-stem): \
+$(OUT-DIR)/$(asm-stem): \
   $(INSTR-GEN-BUILD-STAMP) $(TESTLIST) scripts/run_instr_gen.py
 	@echo Running randomized test generator to create assembly file $@
 	$(verb)env PYTHONPATH=$(PYTHONPATH) \
 	scripts/run_instr_gen.py \
 	  --dir-metadata $(METADATA-DIR) \
-	  --test-dot-seed $*
+	  --test-dot-seed $(TDS)
 

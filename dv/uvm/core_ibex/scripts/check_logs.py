@@ -15,6 +15,7 @@ import pathlib3x as pathlib
 
 from test_entry import read_test_dot_seed
 from test_run_result import TestRunResult, Failure_Modes
+from metadata import RegressionMetadata, load_or_create_trr
 
 from spike_log_to_trace_csv import process_spike_sim_log  # type: ignore
 from ibex_log_to_trace_csv import (process_ibex_sim_log,  # type: ignore
@@ -91,7 +92,7 @@ def _main() -> int:
     args = parser.parse_args()
     tds = args.test_dot_seed
 
-    trr = TestRunResult.construct_from_metadata_dir(args.dir_metadata, f"{tds[0]}.{tds[1]}")
+    trr = load_or_create_trr(args.dir_metadata, f"{tds[0]}.{tds[1]}")
 
     trr = compare_test_run(trr)
     trr.export(write_yaml=True)

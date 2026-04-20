@@ -149,9 +149,9 @@ class RegressionMetadata(scripts_lib.testdata_cls):
         self.dir_build                   = self.dir_out/'build'
         self.dir_instruction_generator   = self.dir_build/'instr_gen'
         self.dir_tb                      = self.dir_build/'tb'
-        self.dir_run                     = self.dir_out/'run'
-        self.dir_tests                   = self.dir_run/'tests'
-        self.dir_cov                     = self.dir_run/'coverage'
+        self.dir_run                     = self.dir_out
+        self.dir_tests                   = self.dir_out
+        self.dir_cov                     = self.dir_out/'coverage'
         self.dir_fcov                    = self.dir_cov/'fcov'
         self.dir_shared_cov              = self.dir_cov/'shared_cov'
         self.dir_cov_merged              = self.dir_cov/'merged'
@@ -343,6 +343,61 @@ class Ops(Enum):
         return self.value
 
 
+def load_or_create_trr(dir_metadata: pathlib.Path, tds: str) -> TestRunResult:
+    """Load TRR from pickle if it exists, otherwise create from metadata.
+
+    This is the preferred way for downstream scripts to obtain a TRR object.
+    On first access the TRR is initialised from the regression metadata and
+    testlist; on subsequent accesses the existing pickle is returned unchanged,
+    preserving any fields (e.g. binary, assembly) set by earlier pipeline steps.
+    """
+    trr_pickle = pathlib.Path(dir_metadata) / f"{tds}.pickle"
+    if trr_pickle.exists():
+        return TestRunResult.construct_from_pickle(trr_pickle)
+
+    md = RegressionMetadata.construct_from_metadata_dir(dir_metadata)
+    test, seed_str = tds.rsplit('.', 1)
+    seed = int(seed_str)
+
+    testtype = next((tt for (t, _count, tt) in md.tests_and_counts if t == test), None)
+    if testtype is None:
+        raise RuntimeError(f"Test '{test}' not found in metadata tests_and_counts")
+
+    trr = TestRunResult(
+        passed=None,
+        failure_message=None,
+        testtype=testtype,
+        testdotseed=tds,
+        testname=test,
+        seed=seed,
+        rtl_simulator=md.simulator,
+        iss_cosim=md.iss,
+        dir_test=md.dir_out,
+        metadata_pickle_file=md.pickle_file,
+        pickle_file=trr_pickle,
+        yaml_file=md.dir_out / 'trr.yaml')
+
+    if testtype == TestType.RISCVDV:
+        obj = get_test_entry(test, md.ibex_riscvdv_testlist)
+        shlex_if_not_empty = lambda f: shlex.split(obj.get(f) or "")
+        trr.gen_test = shlex_if_not_empty('gen_test')
+        trr.gen_opts = shlex_if_not_empty('gen_opts')
+        trr.rtl_test = shlex_if_not_empty('rtl_test')
+        trr.sim_opts = shlex_if_not_empty('sim_opts')
+        for s in trr.sim_opts:
+            if '=' in s:
+                plusarg, val = s.split('=', 1)
+                if plusarg == "+discrete_debug_module":
+                    trr.is_discrete_debug_module = bool(int(val))
+
+    if testtype == TestType.DIRECTED:
+        trr.directed_data = next(filter(
+            lambda i: i['test'] == test,
+            directed_test_schema.import_model(md.directed_test_data).get('tests')))
+
+    return trr
+
+
 def _main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--op', type=Ops, choices=Ops, required=True)
@@ -359,10 +414,6 @@ def _main():
         --dir-metadata specifies the directory of the test metadata
         --dir-out specifies the directory for the regression build and test to take place
         """
-        if (pathlib.Path(args.dir_metadata)/'metadata.pickle').exists():
-            logger.error("Build metadata already exists, not recreating from scratch.")
-            return
-
         md = RegressionMetadata.arg_list_initializer(
             dir_metadata=args.dir_metadata,
             dir_out=args.dir_out,
@@ -380,56 +431,14 @@ def _main():
         if not md.tests_and_counts:
             raise RuntimeError("md.tests_and_counts is empty, cannot get TEST.SEED strings.")
 
-        # Setup metadata objects for each of the tests to be run. Construct a
-        # list of these objects inside the regression_metadata object
-        # constructed above, so we can easily find and import them later, and
-        # give each test object a link back to this top-level object that
-        # defines the wider regression.
+        # Populate the list of TRR pickle paths so collect_results can find them.
+        # TRR objects are created lazily by the first downstream script that
+        # processes each test (via load_or_create_trr).
         for tctt, obj in tests_and_counts:
             test, count, testtype = tctt
             for testseed in range(md.seed, md.seed + count):
                 tds_str = f"{test}.{testseed}"
-
-                # Initialize TestRunResult object
-                trr = TestRunResult(
-                    passed=None,
-                    failure_message=None,
-                    testtype=testtype,
-                    testdotseed=tds_str,
-                    testname=test,
-                    seed=testseed,
-                    rtl_simulator=md.simulator,
-                    iss_cosim=md.iss,
-                    dir_test=md.dir_tests/tds_str,
-                    metadata_pickle_file=md.pickle_file,
-                    pickle_file=md.dir_metadata/(tds_str + ".pickle"),
-                    yaml_file=md.dir_tests/tds_str/'trr.yaml')
-
-                if testtype == TestType.RISCVDV:
-                    # Copy the test options into the object, to make it easier to fetch later.
-                    shlex_if_not_empty = lambda field: shlex.split(obj.get(field) or "")
-                    trr.gen_test = shlex_if_not_empty('gen_test')
-                    trr.gen_opts = shlex_if_not_empty('gen_opts')
-                    trr.rtl_test = shlex_if_not_empty('rtl_test')
-                    trr.sim_opts = shlex_if_not_empty('sim_opts')
-
-                    # If the +discrete_debug_module=1 argument is passed via sim_opts, a alternate
-                    # memory heirarchy is enabled which seperates the debug rom memory sections
-                    # from the main binary, emulating an external debug module
-                    for plusarg, val in (trr.split('=') for trr in trr.sim_opts):
-                        if plusarg == "+discrete_debug_module":
-                            trr.is_discrete_debug_module = False if '' else bool(int(val))
-
-                # Get the data from the directed test yaml that we need to construct the command.
-                if testtype == TestType.DIRECTED:
-                    trr.directed_data = (next(filter(
-                        lambda i: i['test'] == test,
-                        directed_test_schema.import_model(md.directed_test_data).get('tests'))))
-
-                # Save the path into a list in the regression metadata object for later.
-                md.tests_pickle_files.append(trr.pickle_file)
-                # Export the trr structure to disk.
-                trr.export(write_yaml=True)
+                md.tests_pickle_files.append(md.dir_metadata / (tds_str + ".pickle"))
 
         # Export here to commit new RegressionMetadata object to disk.
         md.export(write_yaml=True)

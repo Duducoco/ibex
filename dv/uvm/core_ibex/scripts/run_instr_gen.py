@@ -18,7 +18,7 @@ from test_entry import read_test_dot_seed
 import riscvdv_interface
 from scripts_lib import run_one, format_to_cmd
 from ibex_cmd import get_config
-from metadata import RegressionMetadata
+from metadata import RegressionMetadata, load_or_create_trr
 from test_run_result import TestRunResult
 
 import logging
@@ -154,7 +154,7 @@ def _main() -> int:
     args = parser.parse_args()
     tds = args.test_dot_seed
     md = RegressionMetadata.construct_from_metadata_dir(args.dir_metadata)
-    trr = TestRunResult.construct_from_metadata_dir(args.dir_metadata, f"{tds[0]}.{tds[1]}")
+    trr = load_or_create_trr(args.dir_metadata, f"{tds[0]}.{tds[1]}")
 
     cfg = get_config(md.ibex_config)
 

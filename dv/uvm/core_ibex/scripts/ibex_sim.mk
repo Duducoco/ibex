@@ -4,8 +4,8 @@
 
 ###############################################################################
 
-TB-COMPILE-STAMP = $(METADATA-DIR)/tb.compile.stamp
-rtl_tb_compile: $(METADATA-DIR)/tb.compile.stamp
+TB-COMPILE-STAMP = $(BUILD-DIR)/tb.compile.stamp
+rtl_tb_compile: $(TB-COMPILE-STAMP)
 rtl-tb-compile-var-deps := SIMULATOR COV WAVES # Rebuild if these change
 
 rtl_sim_run: $(rtl-sim-logs)
@@ -34,7 +34,7 @@ tb-compile-vars-path := $(BUILD-DIR)/.tb.vars.mk
 -include $(tb-compile-vars-path)
 tb-compile-vars-prereq = $(call vars-prereq,comp,compiling TB,$(rtl-tb-compile-var-deps))
 
-$(METADATA-DIR)/tb.compile.stamp: \
+$(TB-COMPILE-STAMP): \
   $(tb-compile-vars-prereq) $(all-verilog) $(all-cpp) $(risc-dv-files) \
   scripts/compile_tb.py yaml/rtl_simulation.yaml \
   | $(BUILD-DIR)
@@ -48,34 +48,29 @@ $(METADATA-DIR)/tb.compile.stamp: \
 ###############################################################################
 # Run ibex RTL simulation with random or directed test and uvm stimulus
 
-$(rtl-sim-logs): $(TESTS-DIR)/%/$(rtl-sim-logfile): \
-  $(TB-COMPILE-STAMP) $(TESTS-DIR)/%/test.bin scripts/run_rtl.py
+$(OUT-DIR)/$(rtl-sim-logfile): \
+  $(TB-COMPILE-STAMP) $(OUT-DIR)/$(bin-stem) scripts/run_rtl.py
 	@echo Running RTL simulation at $(@D)
 	$(verb)env PYTHONPATH=$(PYTHONPATH) \
 	scripts/run_rtl.py \
 	  --dir-metadata $(METADATA-DIR) \
-	  --test-dot-seed $*
+	  --test-dot-seed $(TDS)
 
 ###############################################################################
 # Gather RTL sim results, and parse logs for errors
 
-$(comp-results): $(TESTS-DIR)/%/trr.yaml: \
-  $(TESTS-DIR)/%/$(rtl-sim-logfile) scripts/check_logs.py
+$(OUT-DIR)/$(trr-stem): \
+  $(OUT-DIR)/$(rtl-sim-logfile) scripts/check_logs.py
 	@echo Collecting simulation results and checking logs of testcase at $@
 	$(verb)env PYTHONPATH=$(PYTHONPATH) \
 	scripts/check_logs.py \
 	  --dir-metadata $(METADATA-DIR) \
-	  --test-dot-seed $*
+	  --test-dot-seed $(TDS)
 
 ###############################################################################
 # Generate RISCV-DV functional coverage
 # TODO(udi) - add B extension
 
-# When COV == 0 this step (and the merge step below) still run, but just
-# generate a stamp file without performing the coverage related actions. This is
-# to allow the final collect_results.py step to run where COV == 0 (as it needs
-# to declare coverage as a dependency to ensure it gets run after coverage merge
-# when COV == 1).
 $(METADATA-DIR)/fcov.stamp: $(comp-results) \
   scripts/get_fcov.py
 ifeq ($(COV), 1)
@@ -104,7 +99,7 @@ endif
 ###############################################################################
 # Generate the summarized regression log
 
-$(METADATA-DIR)/regr.log.stamp: scripts/collect_results.py $(comp-results) $(MERGE-COV-STAMP)
+$(METADATA-DIR)/regr.log.stamp: scripts/collect_results.py $(comp-results)
 	@echo Collecting up results of tests into report regr.log
 	$(verb)env PYTHONPATH=$(PYTHONPATH) \
 	./scripts/collect_results.py \
